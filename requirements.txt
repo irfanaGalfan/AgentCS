@@ -1,2 +1,8 @@
 streamlit
 python-dotenv
+azure-identity
+azure-ai-projects
+azure-ai-inference
+azure-search-documents
+azure-core
+pypdf
