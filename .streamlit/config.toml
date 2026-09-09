@@ -1,0 +1,6 @@
+[theme]
+primaryColor = "#4ADE80"               # Accent color (buttons, active states)
+backgroundColor = "#0F172A"            # Main chat background (Slate dark)
+secondaryBackgroundColor = "#1E293B"   # Sidebar & card background
+textColor = "#F8FAFC"                  # Primary text color
+font = "san serif"
