@@ -1,12 +1,11 @@
 import json
 import os
-import re  # Added for cleaning up citations
+import re  # Clean up citations
 import streamlit as st
-from dotenv import load_dotenv
 
 # 1. Page Config MUST be the very first Streamlit call
 st.set_page_config(
-    page_title="Past Paper Expert-Developed by Irfana",
+    page_title="Past Paper Expert - Developed by Irfana",
     page_icon="🤖",
     layout="wide",
 )
@@ -14,17 +13,17 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    /* 1. Base Gradient on the main viewport */
+    /* Base Gradient on the main viewport */
     [data-testid="stAppViewContainer"] {
         background: radial-gradient(circle, #2a2e43 0%, #151724 100%);
     }
 
-    /* 2. Strip standard backgrounds from layout headers */
+    /* Strip standard backgrounds from layout headers */
     [data-testid="stHeader"] {
         background: transparent !important;
     }
 
-    /* 3. Force the bottom drawer and ALL its inner wrappers to drop solid fills */
+    /* Force bottom drawer to drop solid fills */
     [data-testid="stBottom"], 
     [data-testid="stBottom"] > div, 
     [data-testid="stBottomBlockContainer"] {
@@ -32,7 +31,7 @@ st.markdown(
         background-color: transparent !important;
     }
     
-    /* ✨ FIX: Modern Academic Alignment & Layout Engine */
+    /* Academic Alignment & Layout Engine */
     .readable-container {
         max-width: 850px;
         line-height: 1.8 !important;
@@ -41,31 +40,19 @@ st.markdown(
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
-    /* Add distinct structural breathing room below paragraphs */
     .readable-container p {
         margin-top: 0px;
         margin-bottom: 18px !important;
     }
 
-    /* Align exam sub-questions cleanly (e.g., 5 (a), (b)) */
     .readable-container strong, 
     .readable-container b {
-        color: #4ADE80; /* Highlights question parts in a crisp green tint */
+        color: #4ADE80;
         display: inline-block;
         margin-top: 14px;
         margin-bottom: 6px;
     }
 
-    /* Beautifully align dotted exam answer lines */
-    .readable-container p:contains("......."),
-    .readable-container p:contains("____") {
-        letter-spacing: 2px;
-        color: rgba(255, 255, 255, 0.3) !important;
-        margin-top: 8px !important;
-        margin-bottom: 8px !important;
-    }
-
-    /* Make list items space out nicely instead of squeezing together */
     .readable-container ul, .readable-container ol {
         margin-top: 10px;
         margin-bottom: 20px;
@@ -79,42 +66,43 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Load Environment Variables
-load_dotenv()
+# Hybrid Environment Variable Loader (Supports both Local .env and Streamlit Cloud Secrets)
+def get_secret(key_name, default=None):
+    if key_name in st.secrets:
+        return st.secrets[key_name]
+    return os.getenv(key_name, default)
 
-from azure.identity import AzureCliCredential, DefaultAzureCredential
-from azure.ai.projects import AIProjectClient
-
-PROJECT_ENDPOINT = os.getenv("PROJECT_ENDPOINT")
-AGENT_NAME = os.getenv("AGENT_NAME")
+PROJECT_ENDPOINT = get_secret("PROJECT_ENDPOINT")
+AGENT_NAME = get_secret("AGENT_NAME")
 
 st.title("Cambridge Past Paper Expert Agent (9618)")
 
 if not PROJECT_ENDPOINT or not AGENT_NAME:
-    st.error("❌ Missing `PROJECT_ENDPOINT` or `AGENT_NAME` in `.env` file.")
+    st.error("❌ Missing `PROJECT_ENDPOINT` or `AGENT_NAME`. Configure them in Streamlit Secrets or `.env`.")
     st.stop()
 
 
-# 2. Authentication
+# 2. Robust Authentication Handler
+from azure.identity import AzureCliCredential, DefaultAzureCredential
+from azure.ai.projects import AIProjectClient
+
 @st.cache_resource(show_spinner="Connecting to Azure AI Services...")
 def get_azure_clients():
+    # Attempt local Azure CLI auth first; fall back to DefaultAzureCredential (Service Principal via Secrets)
     try:
-        try:
-            credential = AzureCliCredential()
-            credential.get_token("https://management.azure.com/.default")
-        except Exception:
-            credential = DefaultAzureCredential()
+        credential = AzureCliCredential()
+        credential.get_token("https://management.azure.com/.default")
+    except Exception:
+        credential = DefaultAzureCredential()
 
-        project_client = AIProjectClient(
-            endpoint=PROJECT_ENDPOINT,
-            credential=credential,
-        )
-        openai_client = project_client.get_openai_client()
-        agent = project_client.agents.get(agent_name=AGENT_NAME)
+    project_client = AIProjectClient(
+        endpoint=PROJECT_ENDPOINT,
+        credential=credential,
+    )
+    openai_client = project_client.get_openai_client()
+    agent = project_client.agents.get(agent_name=AGENT_NAME)
 
-        return project_client, openai_client, agent
-    except Exception as e:
-        raise e
+    return project_client, openai_client, agent
 
 
 try:
@@ -123,11 +111,11 @@ try:
 except Exception as e:
     st.error("❌ Authentication / Connection Failed")
     st.exception(e)
-    st.info("💡 **Fix:** Run `az login` in your terminal to authenticate your session.")
+    st.info("💡 **Fix:** Add `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, and `AZURE_CLIENT_SECRET` to your Streamlit Cloud Secrets.")
     st.stop()
 
 
-# 3. Inject Fixed Stylish Footer directly into the Sidebar
+# 3. Sidebar Footer
 st.sidebar.markdown(
     """
     <style>
@@ -209,12 +197,10 @@ def submit_approval(approved: bool):
     st.session_state.awaiting_response = True
 
 
-# 6. Render Message History (With Readability Containment)
+# 6. Render Message History
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
-        st.markdown('<div class="readable-container">', unsafe_allow_html=True)
-        st.markdown(msg["content"])
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="readable-container">{msg["content"]}</div>', unsafe_allow_html=True)
         if msg.get("citations"):
             with st.expander("📚 View Citations"):
                 for cite in msg["citations"]:
@@ -261,11 +247,10 @@ if user_input:
     )
 
     st.session_state.awaiting_response = True
+    st.rerun()
 
 
-# =====================================================================
-# 9. Corrected & Optimized Streaming Response Handling
-# =====================================================================
+# 9. Streaming Response Handling
 if st.session_state.awaiting_response and not st.session_state.pending_approval:
     with st.chat_message("assistant"):
         text_placeholder = st.empty()
@@ -273,7 +258,6 @@ if st.session_state.awaiting_response and not st.session_state.pending_approval:
         citations_list = []
 
         try:
-            # 1. Open the response stream using stream=True
             response_stream = openai_client.responses.create(
                 conversation=st.session_state.conversation_id,
                 extra_body={
@@ -286,34 +270,25 @@ if st.session_state.awaiting_response and not st.session_state.pending_approval:
                 stream=True
             )
 
-            # 2. Safely parse incoming stream events
             for event in response_stream:
                 if getattr(event, "type", None) == "response.output_text.delta":
                     full_text += event.delta
                     
-                    # Clean custom delimiter tokens into standard markdown paragraph separations
+                    # Clean custom delimiter tokens & strip raw PDF citations
                     clean_display_text = full_text.replace(" ⊗ ", "\n\n")
-                    
-                    # Strip out messy bracket citations (e.g., 【6:17†9618_s23_qp_43.pdf】) dynamically
-                    #clean_display_text = re.sub(r'【[^】]*】', '', clean_display_text)
-                    #  FIXED CODE
                     clean_display_text = re.sub(r'【[^】]*】', '', clean_display_text)
 
-                    
-                    # Display the streamed text inside a custom CSS block to keep it clean and scannable
                     text_placeholder.markdown(
                         f'<div class="readable-container">{clean_display_text}</div>', 
                         unsafe_allow_html=True
                     )
 
-                # Capture citations if populated in the stream chunks
                 if hasattr(event, "citations") and event.citations:
                     for citation in event.citations:
                         source_val = getattr(citation, "content", "Knowledge Base")
                         if source_val not in citations_list:
                             citations_list.append(source_val)
 
-                # Intercept MCP human-in-the-loop validation requests
                 if getattr(event, "type", None) == "mcp_approval_request":
                     st.session_state.pending_approval = event
                     break
@@ -324,16 +299,14 @@ if st.session_state.awaiting_response and not st.session_state.pending_approval:
 
     st.session_state.awaiting_response = False
 
-    # Halt and refresh UI to present approval buttons if tool requests validation
     if st.session_state.pending_approval:
         st.rerun()
 
-           # Save finalized payload to historical messages
-        if full_text:
-            final_clean_text = re.sub(r'【[^】]*】', '', full_text).replace(" ⊗ ", "\n\n")
-            st.session_state.messages.append({
-                "role": "assistant",
-                "content": final_clean_text,
-                "citations": citations_list,
-            })
-            st.rerun()
+    if full_text:
+        final_clean_text = re.sub(r'【[^】]*】', '', full_text).replace(" ⊗ ", "\n\n")
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": final_clean_text,
+            "citations": citations_list,
+        })
+        st.rerun()
