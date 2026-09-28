@@ -45,7 +45,7 @@ The system leverages state-of-the-art cloud infrastructure and agentic framework
 ---
 
 ## 🚦 System Architecture Workflow
-'''
+```
 +-------------------+       +-----------------------+       +-------------------------+
 |  Student Query    | ----> |   Streamlit Frontend  | ----> | Agentic Reasoning Loop  |
 |  (Streamlit UI)   |       +-----------------------+       |  (GPT-5 via Foundry)    |
@@ -56,7 +56,7 @@ v
 | Grounded Response | <---- |   Foundry IQ Router   | <---- |    MCP Server & Tool    |
 | (Questions + MS)  |       |   & Azure AI Search   |       |       Executors         |
 +-------------------+       +-----------------------+       +-------------------------+
-'''
+```
 |
 v
 +-----------------------+
