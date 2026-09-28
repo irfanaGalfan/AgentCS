@@ -56,10 +56,10 @@ v
 | Grounded Response | <---- |   Foundry IQ Router   | <---- |    MCP Server & Tool    |
 | (Questions + MS)  |       |   & Azure AI Search   |       |       Executors         |
 +-------------------+       +-----------------------+       +-------------------------+
-```
 |
 v
 +-----------------------+
 |  Azure Blob Storage   |
 | (Past Papers & MS)    |
 +-----------------------+
+```
